@@ -31,21 +31,63 @@ class QuestionBankApp {
         this.score = 0;
         this.startTime = null;
         
-        // Load saved progress if it exists
-        this.loadProgress();
-        
-        // Initialize
+        // Initialize the app
+        this.initializeDropdowns();
         this.initializeEventListeners();
+        this.loadProgress();
+    }
+
+    initializeDropdowns() {
+        // Reset all dropdowns
+        this.resetAllDropdowns();
+        
+        // Populate subject dropdown
+        this.populateSubjectSelect();
+    }
+
+    populateSubjectSelect() {
+        this.subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+        Object.keys(subjectStructure).forEach(subject => {
+            const option = document.createElement('option');
+            option.value = subject;
+            option.textContent = subject.charAt(0).toUpperCase() + subject.slice(1);
+            this.subjectSelect.appendChild(option);
+        });
+    }
+
+    resetAllDropdowns() {
+        // Disable all dropdowns except subject
+        this.semesterSelect.disabled = true;
+        this.unitSelect.disabled = true;
+        this.lessonSelect.disabled = true;
+
+        // Clear all dropdowns except subject
+        this.resetSelects(['semester', 'unit', 'lesson']);
     }
 
     initializeEventListeners() {
         // Dropdown event listeners
-        this.subjectSelect.addEventListener('change', () => this.handleSubjectChange());
-        this.semesterSelect.addEventListener('change', () => this.handleSemesterChange());
-        this.unitSelect.addEventListener('change', () => this.handleUnitChange());
-        this.lessonSelect.addEventListener('change', () => this.handleLessonChange());
+        this.subjectSelect.addEventListener('change', () => {
+            this.handleSubjectChange();
+            this.saveProgress();
+        });
         
-        // Button event listeners
+        this.semesterSelect.addEventListener('change', () => {
+            this.handleSemesterChange();
+            this.saveProgress();
+        });
+        
+        this.unitSelect.addEventListener('change', () => {
+            this.handleUnitChange();
+            this.saveProgress();
+        });
+        
+        this.lessonSelect.addEventListener('change', () => {
+            this.handleLessonChange();
+            this.saveProgress();
+        });
+
+        // Question navigation buttons
         const submitBtn = document.getElementById('submitBtn');
         const nextBtn = document.getElementById('nextBtn');
         const restartBtn = document.getElementById('restartBtn');
@@ -54,140 +96,67 @@ class QuestionBankApp {
         if (nextBtn) nextBtn.addEventListener('click', () => this.showNextQuestion());
         if (restartBtn) restartBtn.addEventListener('click', () => this.restartQuiz());
 
-        // Add save progress button
+        // Save progress button
         const saveBtn = document.createElement('button');
         saveBtn.className = 'btn secondary';
         saveBtn.textContent = 'Save Progress';
         saveBtn.addEventListener('click', () => this.saveProgress());
         
-        // Add it to the button group
         const buttonGroup = document.querySelector('.button-group');
         if (buttonGroup) {
             buttonGroup.appendChild(saveBtn);
         }
 
-        // Add window unload event to auto-save
+        // Auto-save
         window.addEventListener('beforeunload', () => this.saveProgress());
 
-        // Initialize filter buttons if they exist
+        // Filter buttons
         const filterButtons = document.querySelectorAll('.filter-btn');
         filterButtons.forEach(btn => {
             btn.addEventListener('click', (e) => this.handleFilterClick(e));
         });
     }
 
-    // Fisher-Yates shuffle algorithm
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-    }
-
-    handleFilterClick(e) {
-        const buttons = document.querySelectorAll('.filter-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        const filterType = e.target.dataset.type;
-        this.filterQuestions(filterType);
-    }
-
-    filterQuestions(type) {
-        if (type === 'all') {
-            this.showQuestion();
-            return;
-        }
-
-        const filteredQuestions = this.currentQuestions.filter(q => q.type === type);
-        if (filteredQuestions.length > 0) {
-            this.currentQuestions = filteredQuestions;
-            this.currentQuestionIndex = 0;
-            this.showQuestion();
-        } else {
-            this.showErrorMessage(`No ${type} questions available`);
-        }
-    }
-
-    showErrorMessage(message) {
-        const messageBox = document.createElement('div');
-        messageBox.className = 'message-box';
-        messageBox.textContent = message;
-        this.questionContent.innerHTML = '';
-        this.questionContent.appendChild(messageBox);
-        this.questionArea.classList.remove('hidden');
-    }
-
-    populateSemesterSelect(subject) {
-        const semesters = subjectStructure[subject].semesters;
-        this.semesterSelect.innerHTML = '<option value="">Select Semester</option>';
-        
-        Object.entries(semesters).forEach(([key, semester]) => {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = semester.name;
-            this.semesterSelect.appendChild(option);
-        });
-    }
-
-    populateUnitSelect(subject, semester) {
-        const units = subjectStructure[subject].semesters[semester].units;
-        this.unitSelect.innerHTML = '<option value="">Select Unit</option>';
-        
-        Object.entries(units).forEach(([key, unit]) => {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = unit.name;
-            this.unitSelect.appendChild(option);
-        });
-    }
-
-    populateLessonSelect(subject, semester, unit) {
-        const lessons = subjectStructure[subject].semesters[semester].units[unit].lessons;
-        this.lessonSelect.innerHTML = '<option value="">Select Lesson</option>';
-        
-        lessons.forEach(lesson => {
-            const option = document.createElement('option');
-            option.value = lesson;
-            option.textContent = lesson;
-            this.lessonSelect.appendChild(option);
-        });
-    }
-
     handleSubjectChange() {
         const subject = this.subjectSelect.value;
-        if (!subject) {
-            this.resetSelects(['semester', 'unit', 'lesson']);
-            return;
-        }
-        this.populateSemesterSelect(subject);
+        
+        // Reset dependent dropdowns
+        this.resetSelects(['semester', 'unit', 'lesson']);
+        
+        if (!subject) return;
+
+        // Enable and populate semester dropdown
         this.semesterSelect.disabled = false;
-        this.resetSelects(['unit', 'lesson']);
+        this.populateSemesterSelect(subject);
     }
 
     handleSemesterChange() {
         const subject = this.subjectSelect.value;
         const semester = this.semesterSelect.value;
-        if (!semester) {
-            this.resetSelects(['unit', 'lesson']);
-            return;
-        }
-        this.populateUnitSelect(subject, semester);
+        
+        // Reset dependent dropdowns
+        this.resetSelects(['unit', 'lesson']);
+        
+        if (!semester) return;
+
+        // Enable and populate unit dropdown
         this.unitSelect.disabled = false;
-        this.resetSelects(['lesson']);
+        this.populateUnitSelect(subject, semester);
     }
 
     handleUnitChange() {
         const subject = this.subjectSelect.value;
         const semester = this.semesterSelect.value;
         const unit = this.unitSelect.value;
-        if (!unit) {
-            this.resetSelects(['lesson']);
-            return;
-        }
-        this.populateLessonSelect(subject, semester, unit);
+        
+        // Reset lesson dropdown
+        this.resetSelects(['lesson']);
+        
+        if (!unit) return;
+
+        // Enable and populate lesson dropdown
         this.lessonSelect.disabled = false;
+        this.populateLessonSelect(subject, semester, unit);
     }
 
     handleLessonChange() {
@@ -200,7 +169,47 @@ class QuestionBankApp {
             this.hideQuestions();
             return;
         }
+
         this.loadQuestions(subject, semester, unit, lesson);
+    }
+
+    populateSemesterSelect(subject) {
+        const semesters = subjectStructure[subject]?.semesters;
+        if (!semesters) return;
+        
+        this.semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+        Object.entries(semesters).forEach(([key, semester]) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = semester.name;
+            this.semesterSelect.appendChild(option);
+        });
+    }
+
+    populateUnitSelect(subject, semester) {
+        const units = subjectStructure[subject]?.semesters[semester]?.units;
+        if (!units) return;
+        
+        this.unitSelect.innerHTML = '<option value="">Select Unit</option>';
+        Object.entries(units).forEach(([key, unit]) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = unit.name;
+            this.unitSelect.appendChild(option);
+        });
+    }
+
+    populateLessonSelect(subject, semester, unit) {
+        const lessons = subjectStructure[subject]?.semesters[semester]?.units[unit]?.lessons;
+        if (!lessons) return;
+        
+        this.lessonSelect.innerHTML = '<option value="">Select Lesson</option>';
+        lessons.forEach(lesson => {
+            const option = document.createElement('option');
+            option.value = lesson;
+            option.textContent = lesson;
+            this.lessonSelect.appendChild(option);
+        });
     }
 
     loadQuestions(subject, semester, unit, lesson) {
@@ -209,11 +218,11 @@ class QuestionBankApp {
                 throw new Error('Questions not found for this selection');
             }
             
-            // Create a copy of the questions array and shuffle it
+            // Create a copy and shuffle questions
             this.currentQuestions = [...questionBank[subject][semester][unit][lesson].questions];
             this.shuffleArray(this.currentQuestions);
             
-            // Try to load saved progress for this lesson
+            // Check for saved progress
             const savedProgress = this.loadProgress();
             if (savedProgress && 
                 savedProgress.subject === subject && 
@@ -224,7 +233,7 @@ class QuestionBankApp {
                 this.currentQuestionIndex = savedProgress.questionIndex;
                 this.score = savedProgress.score;
                 this.startTime = new Date(savedProgress.startTime);
-                this.currentQuestions = savedProgress.questions; // Restore saved question order
+                this.currentQuestions = savedProgress.questions;
             } else {
                 this.currentQuestionIndex = 0;
                 this.score = 0;
@@ -243,13 +252,14 @@ class QuestionBankApp {
         this.questionArea.classList.remove('hidden');
         this.resultsArea.classList.add('hidden');
 
-        document.getElementById('lessonTitle').textContent = this.lessonSelect.options[this.lessonSelect.selectedIndex].text;
+        document.getElementById('lessonTitle').textContent = 
+            this.lessonSelect.options[this.lessonSelect.selectedIndex].text;
         document.getElementById('questionCounter').textContent = 
             `Question ${this.currentQuestionIndex + 1} of ${this.currentQuestions.length}`;
 
         this.questionContent.innerHTML = this.createQuestionHTML(question);
 
-        // Reattach event listeners for the new buttons
+        // Reattach event listeners
         const submitBtn = document.getElementById('submitBtn');
         const nextBtn = document.getElementById('nextBtn');
         if (submitBtn) submitBtn.addEventListener('click', () => this.submitAnswer());
@@ -354,7 +364,6 @@ class QuestionBankApp {
             if (isCorrect) this.score++;
         }
 
-        // Save progress after submitting answer
         this.saveProgress();
     }
 
@@ -396,6 +405,39 @@ class QuestionBankApp {
             `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
+    handleFilterClick(e) {
+        const buttons = document.querySelectorAll('.filter-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        
+        const filterType = e.target.dataset.type;
+        this.filterQuestions(filterType);
+    }
+
+    filterQuestions(type) {
+        if (type === 'all') {
+            this.showQuestion();
+            return;
+        }
+
+        const filteredQuestions = this.currentQuestions.filter(q => q.type === type);
+        if (filteredQuestions.length > 0) {
+            this.currentQuestions = filteredQuestions;
+            this.currentQuestionIndex = 0;
+            this.showQuestion();
+        } else {
+            this.showErrorMessage(`No ${type} questions available`);
+        }
+    }
+
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
     saveProgress() {
         const progress = {
             subject: this.subjectSelect.value,
@@ -404,7 +446,7 @@ class QuestionBankApp {
             lesson: this.lessonSelect.value,
             questionIndex: this.currentQuestionIndex,
             score: this.score,
-            startTime: this.startTime.toISOString(),
+            startTime: this.startTime?.toISOString(),
             questions: this.currentQuestions // Save shuffled questions order
         };
         
