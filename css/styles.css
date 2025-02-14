@@ -285,3 +285,8 @@ input:checked + .slider:before {
     text-align: center;
     color: var(--text-secondary);
 }
+.btn.secondary {
+    background-color: var(--secondary-color);
+    color: white;
+    margin-left: 0.5rem;
+}
