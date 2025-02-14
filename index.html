@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Question Bank</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>Academic Question Bank</h1>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="selection-panel">
+            <div class="select-group">
+                <select id="subjectSelect" class="custom-select">
+                    <option value="">Select Subject</option>
+                    <option value="english">English Language</option>
+                    <option value="arabic">Arabic Language</option>
+                    <option value="history">History</option>
+                    <option value="islamic">Islamic Studies</option>
+                </select>
+
+                <select id="semesterSelect" class="custom-select" disabled>
+                    <option value="">Select Semester</option>
+                    <option value="first">First Semester</option>
+                    <option value="second">Second Semester</option>
+                </select>
+
+                <select id="unitSelect" class="custom-select" disabled>
+                    <option value="">Select Unit</option>
+                </select>
+
+                <select id="lessonSelect" class="custom-select" disabled>
+                    <option value="">Select Lesson</option>
+                </select>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main>
+            <!-- Question Display Area -->
+            <div id="questionArea" class="hidden">
+                <div class="question-header">
+                    <h2 id="lessonTitle"></h2>
+                    <div class="question-nav">
+                        <span id="questionCounter"></span>
+                        <div class="filter-group">
+                            <button class="filter-btn active" data-type="all">All</button>
+                            <button class="filter-btn" data-type="multiple">Multiple Choice</button>
+                            <button class="filter-btn" data-type="true-false">True/False</button>
+                            <button class="filter-btn" data-type="short">Short Answer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="questionContent">
+                    <div class="question-card">
+                        <p id="questionText"></p>
+                        <div id="answerOptions"></div>
+                        <div id="feedback" class="feedback hidden"></div>
+                        <div class="button-group">
+                            <button id="submitBtn" class="btn primary">Submit Answer</button>
+                            <button id="nextBtn" class="btn secondary hidden">Next Question</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Area -->
+            <div id="resultsArea" class="hidden">
+                <h2>Quiz Results</h2>
+                <div class="results-summary">
+                    <div class="score-card">
+                        <span class="score-label">Final Score</span>
+                        <span id="finalScore" class="score-value">0%</span>
+                    </div>
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="correctAnswers">0</span> Correct
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-times-circle"></i>
+                            <span id="incorrectAnswers">0</span> Incorrect
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-clock"></i>
+                            <span id="timeSpent">0:00</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="restartBtn" class="btn primary">Start New Quiz</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Search Questions</h2>
+            <input type="text" id="searchInput" placeholder="Enter keywords...">
+            <div id="searchResults"></div>
+        </div>
+    </div>
+
+    <script type="module" src="js/data.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
