@@ -1,307 +1,294 @@
-// app.js
-
-import { subjectStructure } from './subjects.js';
-import { englishQuestions } from './questions/english.js';
-import { arabicQuestions } from './questions/arabic.js';
-import { historyQuestions } from './questions/history.js';
-import { islamicQuestions } from './questions/islamic.js';
-
-// Question bank mapping
-const questionBank = {
-    english: englishQuestions,
-    arabic: arabicQuestions,
-    history: historyQuestions,
-    islamic: islamicQuestions
+// subjects.js
+export const subjectStructure = {
+    english: {
+        semesters: {
+            semester1: {
+                name: "Semester 1",
+                units: {
+                    unit1: {
+                        name: "Unit 1",
+                        lessons: ["Introduction", "Basic Grammar", "Reading Comprehension"]
+                    },
+                    unit2: {
+                        name: "Unit 2",
+                        lessons: ["Advanced Grammar", "Writing Skills", "Literature"]
+                    }
+                }
+            },
+            semester2: {
+                name: "Semester 2",
+                units: {
+                    unit1: {
+                        name: "Unit 1",
+                        lessons: ["Poetry", "Essay Writing", "Critical Analysis"]
+                    },
+                    unit2: {
+                        name: "Unit 2",
+                        lessons: ["Research Writing", "Public Speaking", "Final Review"]
+                    }
+                }
+            }
+        }
+    },
+    // Add other subjects following the same structure
 };
 
+// questions/english.js
+export const englishQuestions = {
+    semester1: {
+        unit1: {
+            "Introduction": {
+                questions: [
+                    {
+                        question: "What is the main purpose of English grammar?",
+                        type: "multiple",
+                        options: [
+                            "To make communication clearer",
+                            "To make writing difficult",
+                            "To confuse readers",
+                            "To create new words"
+                        ],
+                        correctAnswer: 0,
+                        explanation: "Grammar helps make communication clearer and more effective."
+                    },
+                    // Add more questions following the same structure
+                ]
+            },
+            // Add other lessons following the same structure
+        }
+    }
+};
+
+// app.js
 class QuestionBankApp {
     constructor() {
-        // DOM Elements
-        this.subjectSelect = document.getElementById('subjectSelect');
-        this.semesterSelect = document.getElementById('semesterSelect');
-        this.unitSelect = document.getElementById('unitSelect');
-        this.lessonSelect = document.getElementById('lessonSelect');
-        this.questionArea = document.getElementById('questionArea');
-        this.questionContent = document.getElementById('questionContent');
-        this.resultsArea = document.getElementById('resultsArea');
-        
-        // State
-        this.currentQuestions = [];
-        this.currentQuestionIndex = 0;
-        this.score = 0;
-        this.startTime = null;
-        
-        // Initialize the app
-        this.initializeDropdowns();
+        this.initializeState();
+        this.initializeElements();
         this.initializeEventListeners();
         this.loadProgress();
     }
 
+    initializeState() {
+        this.state = {
+            currentQuestions: [],
+            currentQuestionIndex: 0,
+            score: 0,
+            startTime: null,
+            questionBank: {
+                english: englishQuestions,
+                // Add other subjects
+            }
+        };
+    }
+
+    initializeElements() {
+        const requiredElements = {
+            subjectSelect: 'Subject',
+            semesterSelect: 'Semester',
+            unitSelect: 'Unit',
+            lessonSelect: 'Lesson',
+            questionArea: 'Question Area',
+            questionContent: 'Question Content',
+            resultsArea: 'Results Area'
+        };
+
+        this.elements = {};
+
+        for (const [key, label] of Object.entries(requiredElements)) {
+            const element = document.getElementById(key);
+            if (!element) {
+                throw new Error(`Required element #${key} (${label}) not found`);
+            }
+            this.elements[key] = element;
+        }
+
+        // Initialize select elements
+        this.initializeDropdowns();
+    }
+
     initializeDropdowns() {
-        // Reset all dropdowns
-        this.resetAllDropdowns();
+        // Reset and disable all dropdowns except subject
+        this.resetDropdowns();
         
         // Populate subject dropdown
-        this.populateSubjectSelect();
+        this.populateSelect(
+            this.elements.subjectSelect,
+            Object.keys(subjectStructure),
+            'Select Subject'
+        );
     }
 
-    populateSubjectSelect() {
-        this.subjectSelect.innerHTML = '<option value="">Select Subject</option>';
-        Object.keys(subjectStructure).forEach(subject => {
-            const option = document.createElement('option');
-            option.value = subject;
-            option.textContent = subject.charAt(0).toUpperCase() + subject.slice(1);
-            this.subjectSelect.appendChild(option);
+    resetDropdowns() {
+        const selects = ['semester', 'unit', 'lesson'];
+        selects.forEach(select => {
+            const element = this.elements[`${select}Select`];
+            element.innerHTML = `<option value="">Select ${select.charAt(0).toUpperCase() + select.slice(1)}</option>`;
+            element.disabled = true;
         });
+        this.hideQuestions();
     }
 
-    resetAllDropdowns() {
-        // Disable all dropdowns except subject
-        this.semesterSelect.disabled = true;
-        this.unitSelect.disabled = true;
-        this.lessonSelect.disabled = true;
-
-        // Clear all dropdowns except subject
-        this.resetSelects(['semester', 'unit', 'lesson']);
+    populateSelect(selectElement, items, defaultText, nameProperty = null) {
+        selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+        items.forEach((item, index) => {
+            const option = document.createElement('option');
+            option.value = nameProperty ? item[nameProperty] : item;
+            option.textContent = nameProperty ? item[nameProperty] : 
+                               (typeof item === 'string' ? item.charAt(0).toUpperCase() + item.slice(1) : item);
+            selectElement.appendChild(option);
+        });
     }
 
     initializeEventListeners() {
-        // Dropdown event listeners
-        this.subjectSelect.addEventListener('change', () => {
-            this.handleSubjectChange();
-            this.saveProgress();
-        });
-        
-        this.semesterSelect.addEventListener('change', () => {
-            this.handleSemesterChange();
-            this.saveProgress();
-        });
-        
-        this.unitSelect.addEventListener('change', () => {
-            this.handleUnitChange();
-            this.saveProgress();
-        });
-        
-        this.lessonSelect.addEventListener('change', () => {
-            this.handleLessonChange();
-            this.saveProgress();
-        });
+        // Dropdown change events
+        this.elements.subjectSelect.addEventListener('change', () => this.handleSubjectChange());
+        this.elements.semesterSelect.addEventListener('change', () => this.handleSemesterChange());
+        this.elements.unitSelect.addEventListener('change', () => this.handleUnitChange());
+        this.elements.lessonSelect.addEventListener('change', () => this.handleLessonChange());
 
-        // Question navigation buttons
-        const submitBtn = document.getElementById('submitBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const restartBtn = document.getElementById('restartBtn');
-
-        if (submitBtn) submitBtn.addEventListener('click', () => this.submitAnswer());
-        if (nextBtn) nextBtn.addEventListener('click', () => this.showNextQuestion());
-        if (restartBtn) restartBtn.addEventListener('click', () => this.restartQuiz());
-
-        // Save progress button
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'btn secondary';
-        saveBtn.textContent = 'Save Progress';
-        saveBtn.addEventListener('click', () => this.saveProgress());
-        
-        const buttonGroup = document.querySelector('.button-group');
-        if (buttonGroup) {
-            buttonGroup.appendChild(saveBtn);
-        }
+        // Button events
+        this.initializeButtonListeners();
 
         // Auto-save
         window.addEventListener('beforeunload', () => this.saveProgress());
+    }
 
-        // Filter buttons
-        const filterButtons = document.querySelectorAll('.filter-btn');
-        filterButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleFilterClick(e));
+    initializeButtonListeners() {
+        const buttons = {
+            submitBtn: () => this.submitAnswer(),
+            nextBtn: () => this.showNextQuestion(),
+            restartBtn: () => this.restartQuiz(),
+            saveBtn: () => this.saveProgress()
+        };
+
+        Object.entries(buttons).forEach(([id, handler]) => {
+            const button = document.getElementById(id);
+            if (button) {
+                // Remove old listeners
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', handler.bind(this));
+            }
         });
     }
 
     handleSubjectChange() {
-        const subject = this.subjectSelect.value;
-        
-        // Reset dependent dropdowns
-        this.resetSelects(['semester', 'unit', 'lesson']);
+        const subject = this.elements.subjectSelect.value;
+        this.resetDropdowns();
         
         if (!subject) return;
 
-        // Enable and populate semester dropdown
-        this.semesterSelect.disabled = false;
-        this.populateSemesterSelect(subject);
+        const semesters = Object.keys(subjectStructure[subject].semesters);
+        this.elements.semesterSelect.disabled = false;
+        this.populateSelect(
+            this.elements.semesterSelect,
+            semesters,
+            'Select Semester'
+        );
+        
+        this.saveProgress();
     }
 
     handleSemesterChange() {
-        const subject = this.subjectSelect.value;
-        const semester = this.semesterSelect.value;
+        const subject = this.elements.subjectSelect.value;
+        const semester = this.elements.semesterSelect.value;
         
-        // Reset dependent dropdowns
-        this.resetSelects(['unit', 'lesson']);
+        this.resetDropdowns();
         
         if (!semester) return;
 
-        // Enable and populate unit dropdown
-        this.unitSelect.disabled = false;
-        this.populateUnitSelect(subject, semester);
+        const units = Object.keys(subjectStructure[subject].semesters[semester].units);
+        this.elements.unitSelect.disabled = false;
+        this.populateSelect(
+            this.elements.unitSelect,
+            units,
+            'Select Unit'
+        );
+        
+        this.saveProgress();
     }
 
     handleUnitChange() {
-        const subject = this.subjectSelect.value;
-        const semester = this.semesterSelect.value;
-        const unit = this.unitSelect.value;
+        const subject = this.elements.subjectSelect.value;
+        const semester = this.elements.semesterSelect.value;
+        const unit = this.elements.unitSelect.value;
         
-        // Reset lesson dropdown
-        this.resetSelects(['lesson']);
-        
-        if (!unit) return;
+        if (!unit) {
+            this.elements.lessonSelect.innerHTML = '<option value="">Select Lesson</option>';
+            this.elements.lessonSelect.disabled = true;
+            return;
+        }
 
-        // Enable and populate lesson dropdown
-        this.lessonSelect.disabled = false;
-        this.populateLessonSelect(subject, semester, unit);
+        const lessons = subjectStructure[subject].semesters[semester].units[unit].lessons;
+        this.elements.lessonSelect.disabled = false;
+        this.populateSelect(
+            this.elements.lessonSelect,
+            lessons,
+            'Select Lesson'
+        );
+        
+        this.saveProgress();
     }
 
     handleLessonChange() {
-        const subject = this.subjectSelect.value;
-        const semester = this.semesterSelect.value;
-        const unit = this.unitSelect.value;
-        const lesson = this.lessonSelect.value;
+        const selection = {
+            subject: this.elements.subjectSelect.value,
+            semester: this.elements.semesterSelect.value,
+            unit: this.elements.unitSelect.value,
+            lesson: this.elements.lessonSelect.value
+        };
 
-        if (!lesson) {
+        if (!selection.lesson) {
             this.hideQuestions();
             return;
         }
 
-        this.loadQuestions(subject, semester, unit, lesson);
+        this.loadQuestions(selection);
+        this.saveProgress();
     }
 
-    populateSemesterSelect(subject) {
-        const semesters = subjectStructure[subject]?.semesters;
-        if (!semesters) return;
-        
-        this.semesterSelect.innerHTML = '<option value="">Select Semester</option>';
-        Object.entries(semesters).forEach(([key, semester]) => {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = semester.name;
-            this.semesterSelect.appendChild(option);
-        });
-    }
-
-    populateUnitSelect(subject, semester) {
-        const units = subjectStructure[subject]?.semesters[semester]?.units;
-        if (!units) return;
-        
-        this.unitSelect.innerHTML = '<option value="">Select Unit</option>';
-        Object.entries(units).forEach(([key, unit]) => {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = unit.name;
-            this.unitSelect.appendChild(option);
-        });
-    }
-
-    populateLessonSelect(subject, semester, unit) {
-        const lessons = subjectStructure[subject]?.semesters[semester]?.units[unit]?.lessons;
-        if (!lessons) return;
-        
-        this.lessonSelect.innerHTML = '<option value="">Select Lesson</option>';
-        lessons.forEach(lesson => {
-            const option = document.createElement('option');
-            option.value = lesson;
-            option.textContent = lesson;
-            this.lessonSelect.appendChild(option);
-        });
-    }
-
-    loadQuestions(subject, semester, unit, lesson) {
+    loadQuestions(selection) {
         try {
-            if (!questionBank[subject]?.[semester]?.[unit]?.[lesson]?.questions) {
-                throw new Error('Questions not found for this selection');
+            const questions = this.state.questionBank[selection.subject]?.[selection.semester]?.[selection.unit]?.[selection.lesson]?.questions;
+            
+            if (!questions || !Array.isArray(questions) || questions.length === 0) {
+                throw new Error('No questions available for this selection');
             }
-            
-            // Create a copy and shuffle questions
-            this.currentQuestions = [...questionBank[subject][semester][unit][lesson].questions];
-            this.shuffleArray(this.currentQuestions);
-            
-            // Check for saved progress
-            const savedProgress = this.loadProgress();
-            if (savedProgress && 
-                savedProgress.subject === subject && 
-                savedProgress.semester === semester && 
-                savedProgress.unit === unit && 
-                savedProgress.lesson === lesson) {
-                
-                this.currentQuestionIndex = savedProgress.questionIndex;
-                this.score = savedProgress.score;
-                this.startTime = new Date(savedProgress.startTime);
-                this.currentQuestions = savedProgress.questions;
-            } else {
-                this.currentQuestionIndex = 0;
-                this.score = 0;
-                this.startTime = new Date();
-            }
-            
+
+            this.state.currentQuestions = this.shuffleArray([...questions]);
+            this.state.currentQuestionIndex = 0;
+            this.state.score = 0;
+            this.state.startTime = new Date();
+
             this.showQuestion();
         } catch (error) {
             console.error('Error loading questions:', error);
-            this.showErrorMessage(error.message || 'Error loading questions. Please try another selection.');
+            this.showError('Failed to load questions. Please try another selection.');
         }
     }
 
     showQuestion() {
-        const question = this.currentQuestions[this.currentQuestionIndex];
-        this.questionArea.classList.remove('hidden');
-        this.resultsArea.classList.add('hidden');
+        const question = this.state.currentQuestions[this.state.currentQuestionIndex];
+        if (!question) {
+            this.showError('Question not found');
+            return;
+        }
 
-        document.getElementById('lessonTitle').textContent = 
-            this.lessonSelect.options[this.lessonSelect.selectedIndex].text;
-        document.getElementById('questionCounter').textContent = 
-            `Question ${this.currentQuestionIndex + 1} of ${this.currentQuestions.length}`;
+        this.elements.questionArea.classList.remove('hidden');
+        this.elements.resultsArea.classList.add('hidden');
 
-        this.questionContent.innerHTML = this.createQuestionHTML(question);
+        const questionHTML = this.createQuestionHTML(question);
+        this.elements.questionContent.innerHTML = questionHTML;
 
-        // Reattach event listeners
-        const submitBtn = document.getElementById('submitBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        if (submitBtn) submitBtn.addEventListener('click', () => this.submitAnswer());
-        if (nextBtn) nextBtn.addEventListener('click', () => this.showNextQuestion());
+        this.initializeButtonListeners();
     }
 
     createQuestionHTML(question) {
-        let html = `
+        return `
             <div class="question-card">
                 <p class="question-text">${question.question}</p>
                 <div class="answer-options">
-        `;
-
-        switch (question.type) {
-            case 'multiple':
-                html += question.options.map((option, index) => `
-                    <label class="answer-option">
-                        <input type="radio" name="answer" value="${index}">
-                        ${option}
-                    </label>
-                `).join('');
-                break;
-
-            case 'true-false':
-                html += `
-                    <label class="answer-option">
-                        <input type="radio" name="answer" value="true"> True
-                    </label>
-                    <label class="answer-option">
-                        <input type="radio" name="answer" value="false"> False
-                    </label>
-                `;
-                break;
-
-            case 'short':
-                html += `
-                    <textarea class="short-answer" rows="4" placeholder="Type your answer here..."></textarea>
-                `;
-                break;
-        }
-
-        html += `
+                    ${this.createAnswerOptionsHTML(question)}
                 </div>
                 <div id="feedback" class="feedback hidden"></div>
                 <div class="button-group">
@@ -310,61 +297,112 @@ class QuestionBankApp {
                 </div>
             </div>
         `;
+    }
 
-        return html;
+    createAnswerOptionsHTML(question) {
+        switch (question.type) {
+            case 'multiple':
+                return question.options.map((option, index) => `
+                    <label class="answer-option">
+                        <input type="radio" name="answer" value="${index}">
+                        ${option}
+                    </label>
+                `).join('');
+
+            case 'true-false':
+                return `
+                    <label class="answer-option">
+                        <input type="radio" name="answer" value="true"> True
+                    </label>
+                    <label class="answer-option">
+                        <input type="radio" name="answer" value="false"> False
+                    </label>
+                `;
+
+            case 'short':
+                return `
+                    <textarea class="short-answer" rows="4" placeholder="Type your answer here..."></textarea>
+                `;
+
+            default:
+                return '<p class="error">Invalid question type</p>';
+        }
     }
 
     submitAnswer() {
-        const question = this.currentQuestions[this.currentQuestionIndex];
+        const question = this.state.currentQuestions[this.state.currentQuestionIndex];
         const feedback = document.getElementById('feedback');
         const submitBtn = document.getElementById('submitBtn');
         const nextBtn = document.getElementById('nextBtn');
+
+        if (!feedback || !submitBtn || !nextBtn) {
+            this.showError('Required elements not found');
+            return;
+        }
+
         let isCorrect = false;
+        try {
+            switch (question.type) {
+                case 'multiple':
+                case 'true-false':
+                    isCorrect = this.handleStructuredAnswer(question, feedback);
+                    break;
 
-        switch (question.type) {
-            case 'multiple':
-            case 'true-false':
-                const selectedAnswer = document.querySelector('input[name="answer"]:checked');
-                if (!selectedAnswer) {
-                    feedback.textContent = 'Please select an answer.';
-                    feedback.className = 'feedback incorrect';
-                    feedback.classList.remove('hidden');
-                    return;
-                }
-                isCorrect = this.checkAnswer(selectedAnswer.value, question);
-                break;
+                case 'short':
+                    this.handleShortAnswer(question, feedback);
+                    break;
 
-            case 'short':
-                const answer = document.querySelector('.short-answer').value.trim();
-                if (!answer) {
-                    feedback.textContent = 'Please enter an answer.';
-                    feedback.className = 'feedback incorrect';
-                    feedback.classList.remove('hidden');
-                    return;
-                }
-                feedback.innerHTML = `
-                    <h4>Sample Answer:</h4>
-                    <p>${question.sampleAnswer}</p>
-                    <p class="mt-2">Compare your answer with the sample answer above.</p>
-                `;
-                feedback.className = 'feedback';
-                break;
+                default:
+                    throw new Error('Invalid question type');
+            }
+
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+            
+            if (isCorrect) this.state.score++;
+            
+            this.saveProgress();
+        } catch (error) {
+            console.error('Error submitting answer:', error);
+            this.showError('Failed to submit answer. Please try again.');
+        }
+    }
+
+    handleStructuredAnswer(question, feedback) {
+        const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+        if (!selectedAnswer) {
+            feedback.textContent = 'Please select an answer.';
+            feedback.className = 'feedback incorrect';
+            feedback.classList.remove('hidden');
+            return false;
         }
 
+        const isCorrect = this.checkAnswer(selectedAnswer.value, question);
+        feedback.innerHTML = `
+            <p>${isCorrect ? 'Correct!' : 'Incorrect.'}</p>
+            <p>${question.explanation}</p>
+        `;
+        feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
         feedback.classList.remove('hidden');
-        submitBtn.classList.add('hidden');
-        nextBtn.classList.remove('hidden');
+        return isCorrect;
+    }
 
-        if (question.type !== 'short') {
-            feedback.innerHTML = `
-                <p>${isCorrect ? 'Correct!' : 'Incorrect.'}</p>
-                <p>${question.explanation}</p>
-            `;
-            feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            if (isCorrect) this.score++;
+    handleShortAnswer(question, feedback) {
+        const answer = document.querySelector('.short-answer')?.value.trim();
+        if (!answer) {
+            feedback.textContent = 'Please enter an answer.';
+            feedback.className = 'feedback incorrect';
+            feedback.classList.remove('hidden');
+            return;
         }
 
-        this.saveProgress();
+        feedback.innerHTML = `
+            <h4>Sample Answer:</h4>
+            <p>${question.sampleAnswer}</p>
+            <p class="mt-2">Compare your answer with the sample answer above.</p>
+        `;
+        feedback.className = 'feedback';
+        feedback.classList.remove('hidden');
     }
 
     checkAnswer(answer, question) {
@@ -379,8 +417,8 @@ class QuestionBankApp {
     }
 
     showNextQuestion() {
-        this.currentQuestionIndex++;
-        if (this.currentQuestionIndex < this.currentQuestions.length) {
+        this.state.currentQuestionIndex++;
+        if (this.state.currentQuestionIndex < this.state.currentQuestions.length) {
             this.showQuestion();
         } else {
             this.showResults();
@@ -389,59 +427,48 @@ class QuestionBankApp {
 
     showResults() {
         const endTime = new Date();
-        const timeSpent = Math.floor((endTime - this.startTime) / 1000);
+        const timeSpent = Math.floor((endTime - this.state.startTime) / 1000);
         const minutes = Math.floor(timeSpent / 60);
         const seconds = timeSpent % 60;
 
-        this.questionArea.classList.add('hidden');
-        this.resultsArea.classList.remove('hidden');
-        
-        document.getElementById('finalScore').textContent = 
-            `${Math.round((this.score / this.currentQuestions.length) * 100)}%`;
-        document.getElementById('correctAnswers').textContent = this.score;
-        document.getElementById('incorrectAnswers').textContent = 
-            this.currentQuestions.length - this.score;
-        document.getElementById('timeSpent').textContent = 
-            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        this.elements.questionArea.classList.add('hidden');
+        this.elements.resultsArea.classList.remove('hidden');
+
+        const resultsHTML = `
+            <div class="results-card">
+                <h2>Quiz Results</h2>
+                <p>Score: <span id="finalScore">${Math.round((this.state.score / this.state.currentQuestions.length) * 100)}%</span></p>
+                <p>Correct Answers: <span id="correctAnswers">${this.state.score}</span></p>
+                <p>Incorrect Answers: <span id="incorrectAnswers">${this.state.currentQuestions.length - this.state.score}</span></p>
+                <p>Time Spent: <span id="timeSpent">${minutes}:${seconds.toString().padStart(2, '0')}</span></p>
+                <button id="restartBtn" class="btn primary">Restart Quiz</button>
+            </div>
+        `;
+
+        this.elements.resultsArea.innerHTML = resultsHTML;
+        this.initializeButtonListeners();
     }
 
-    handleFilterClick(e) {
-        const buttons = document.querySelectorAll('.filter-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        const filterType = e.target.dataset.type;
-        this.filterQuestions(filterType);
-    }
-
-    filterQuestions(type) {
-        if (type === 'all') {
+    restartQuiz() {
+        try {
+            localStorage.removeItem('questionBankProgress');
+            this.state.currentQuestionIndex = 0;
+            this.state.score = 0;
+            this.state.startTime = new Date();
+            this.shuffleArray(this.state.currentQuestions);
+            this.elements.resultsArea.classList.add('hidden');
             this.showQuestion();
-            return;
+        } catch (error) {
+            console.error('Error restarting quiz:', error);
+            this.showError('Failed to restart quiz. Please refresh the page.');
         }
-
-        const filteredQuestions = this.currentQuestions.filter(q => q.type === type);
-        if (filteredQuestions.length > 0) {
-            this.currentQuestions = filteredQuestions;
-            this.currentQuestionIndex = 0;
-            this.showQuestion();
-        } else {
-            this.showErrorMessage(`No ${type} questions available`);
-        }
-    }
-
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
     }
 
     saveProgress() {
-        const progress = {
-            subject: this.subjectSelect.value,
-            semester: this.semesterSelect.value,
+        try {
+            const progress = {
+                subject: this.elements.subjectSelect.value,
+                semester: this.elements.semesterSelect.value,
             unit: this.unitSelect.value,
             lesson: this.lessonSelect.value,
             questionIndex: this.currentQuestionIndex,
